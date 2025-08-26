@@ -1,17 +1,17 @@
-
+"""
 # README: Google Threat Intelligence (GTI) Corpus Search Script
 
 ## Overview
-This Python script is designed for proof-of-concept (PoC) use to interact with the Google Threat Intelligence (GTI) API. It performs an advanced corpus search for IP addresses with high GTI scores and saves the relevant data to a unique, timestamped CSV file. It also prints a summary and full examples of the first two results to the console.
+This Python script is designed for proof-of-concept (PoC) use to interact with the Google Threat Intelligence (GTI) API. It performs an advanced corpus search for IP addresses with high GTI scores and saves the relevant data to a unique, timestamped CSV file. It also prints a summary and a single full example of a result to the console.
 
 **Disclaimer:** This code is for PoC purposes only and is not intended for use in a production environment.
 
 ## Features
 - **Interactive Input:** Prompts the user to enter their GTI API key and a custom search query. A default search query is provided for convenience.
 - **Dynamic File Naming:** Creates a unique CSV filename with a timestamp (e.g., `gti_results_YYYYMMDD_HHMMSS.csv`) to prevent overwriting previous results.
-- **Pagination:** Automatically handles paginated results to retrieve all matching records up to the specified limit.
-- **Sample Output:** Prints the full JSON for the first two results to the console for detailed inspection.
-- **CSV Export:** Saves a cleaned-up version of the results to a CSV file, including the IP address, country, threat score, positive detections, and a human-readable last modification date.
+- **Pagination:** Automatically handles paginated results to retrieve all matching records without a total limit.
+- **Sample Output:** Prints the full JSON for the first result to the console for detailed inspection.
+- **CSV Export:** Saves all retrieved results to a CSV file, including the IP address, country, threat score, positive detections, and a human-readable last modification date.
 - **Safe to Share:** The script does not embed any API keys, making it safe to share publicly.
 
 ## Prerequisites
@@ -24,7 +24,7 @@ This Python script is designed for proof-of-concept (PoC) use to interact with t
     `python gti_search.py`
 3.  **Enter your API key:** When prompted, paste your Google Threat Intelligence API key and press Enter.
 4.  **Enter your search query:** You can either type a specific query or simply press Enter to use the default search: `entity:ip last_modification_date:7d+ and gti_score:90+`.
-5.  **View results:** The script will print its progress, a summary of all results, and a detailed view of the first two items. The CSV file will be saved in the same directory.
+5.  **View results:** The script will print its progress, a summary of all results, and a detailed view of the first item. The CSV file will be saved in the same directory.
 
 ## CSV Output Fields
 - **IP_Address:** The IP address of the result.
@@ -34,7 +34,6 @@ This Python script is designed for proof-of-concept (PoC) use to interact with t
 - **Last_Modification:** The date and time the IOC was last modified, in `mm/dd/yy hh:mm` format.
 
 ## Customization
-- **Total Limit:** The `total_limit` variable in the `gti_corpus_search` function can be changed to retrieve a different number of IOCs (default is 4000).
 - **Default Query:** The `default_query` variable in the `main` function can be changed to a different search query.
 """
 
@@ -50,17 +49,16 @@ from datetime import datetime
 # The base URL for the Google Threat Intelligence (GTI) API
 BASE_URL = "https://www.virustotal.com/api/v3"
 
-def gti_corpus_search(api_key, query, x_tool, limit=300, total_limit=4000):
+def gti_corpus_search(api_key, query, x_tool, limit=300):
     """
-    Searches the Google Threat Intelligence advanced corpus with pagination,
-    with a maximum total result limit.
+    Searches the Google Threat Intelligence advanced corpus with pagination
+    until all matching results are retrieved.
 
     Args:
         api_key (str): Your Google Threat Intelligence API key.
         query (str): The search query string.
         x_tool (str): The x-tool header for the request.
         limit (int): The maximum number of results to return per page.
-        total_limit (int): The maximum total number of results to retrieve.
 
     Returns:
         list: A list of dictionaries containing the search results.
@@ -73,7 +71,7 @@ def gti_corpus_search(api_key, query, x_tool, limit=300, total_limit=4000):
     print("-" * 50)
     
     page_count = 1
-    while len(all_results) < total_limit:
+    while True:
         url = f"{BASE_URL}/intelligence/search?query={encoded_query}&limit={limit}"
         if cursor:
             url += f"&cursor={cursor}"
@@ -90,21 +88,15 @@ def gti_corpus_search(api_key, query, x_tool, limit=300, total_limit=4000):
             data = response.json()
             
             page_results = data.get("data", [])
-            
-            # Add results to our list, stopping at the total_limit
-            for item in page_results:
-                if len(all_results) < total_limit:
-                    all_results.append(item)
-                else:
-                    break
+            all_results.extend(page_results)
 
             # Display progress
             total_fetched = len(all_results)
             print(f"[{total_fetched} IOCs retrieved] - Page {page_count}: Fetched {len(page_results)} results.")
             
             cursor = data.get("links", {}).get("next")
-            if not cursor or len(all_results) >= total_limit:
-                print("Total result limit reached or no more pages to retrieve. Search complete.")
+            if not cursor:
+                print("No more pages to retrieve. Search complete.")
                 break
             
             url = cursor
@@ -118,16 +110,15 @@ def gti_corpus_search(api_key, query, x_tool, limit=300, total_limit=4000):
             
     return all_results
 
-def save_results_to_csv(results, exclude_count):
+def save_results_to_csv(results):
     """
     Saves the search results to a CSV file, with a unique filename.
 
     Args:
         results (list): A list of dictionaries containing the search results.
-        exclude_count (int): The number of initial results to exclude from the CSV.
     """
-    if len(results) <= exclude_count:
-        print("No results to save to CSV after exclusion.")
+    if not results:
+        print("No results to save to CSV.")
         return
 
     # Create a unique filename with a timestamp
@@ -141,10 +132,7 @@ def save_results_to_csv(results, exclude_count):
             writer = csv.writer(csvfile)
             writer.writerow(headers)
             
-            # Slice the list to exclude the first 'exclude_count' items
-            results_for_csv = results[exclude_count:]
-            
-            for item in results_for_csv:
+            for item in results:
                 item_id = item.get("id", "N/A")
                 attributes = item.get("attributes", {})
                 
@@ -159,7 +147,7 @@ def save_results_to_csv(results, exclude_count):
                     last_modification = datetime.fromtimestamp(last_mod_timestamp).strftime("%m/%d/%y %H:%M")
                 
                 writer.writerow([item_id, country, threat_score, positive_detections, last_modification])
-        print(f"Results saved to '{csv_filename}' successfully. Excluded {exclude_count} examples.")
+        print(f"Results saved to '{csv_filename}' successfully.")
     except IOError as e:
         print(f"An error occurred while writing the CSV file: {e}", file=sys.stderr)
 
@@ -182,17 +170,13 @@ def main():
 
     results = gti_corpus_search(api_key, query, x_tool)
     
-    # Print the first two examples
-    if len(results) > 2:
-        print("\nDisplaying the first two results in full detail:")
-        print("-" * 50)
-        print("Example 1:")
-        print(json.dumps(results[0], indent=4))
-        print("\nExample 2:")
-        print(json.dumps(results[1], indent=4))
-        print("-" * 50)
-    
+    # Print the first example
     if results:
+        print("\nDisplaying the first result in full detail:")
+        print("-" * 50)
+        print(json.dumps(results[0], indent=4))
+        print("-" * 50)
+        
         print("\nSummary of all results:")
         print("-" * 110)
         print(f"{'IP Address':<20} | {'Country':<5} | {'Threat Score':<12} | {'Positive Detections':<20} | {'Last Modification':<18}")
@@ -212,8 +196,8 @@ def main():
             print(f"{item_id:<20} | {country:<5} | {threat_score:<12} | {positive_detections:<20} | {last_modification:<18}")
         print("-" * 110)
         
-        # Save all results except the first two to a CSV file
-        save_results_to_csv(results, 2)
+        # Save all results to a CSV file
+        save_results_to_csv(results)
     else:
         print("\nNo results found or an error occurred during the search.")
 
