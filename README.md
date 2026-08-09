@@ -1,7 +1,7 @@
 <div align="center">
   <div>&nbsp;</div>
 
-# Advanced Corpus Search
+# GTI Corpus Search: Programmatic IP Intelligence
 
 [![Proof of Concept](https://img.shields.io/badge/Status-Proof_of_Concept-yellow)](#)
 [![Google Threat Intelligence](https://img.shields.io/badge/Integration-GTI-blue)](#)
