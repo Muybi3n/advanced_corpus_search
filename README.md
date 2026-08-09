@@ -1,10 +1,48 @@
+<div align="center">
+  <div>&nbsp;</div>
+
 # Advanced Corpus Search
 
-**NOTE: This project is for Proof of Concept (POC) purposes only. It is not intended for production use.**
+[![Proof of Concept](https://img.shields.io/badge/Status-Proof_of_Concept-yellow)](#)
+[![Google Threat Intelligence](https://img.shields.io/badge/Integration-GTI-blue)](#)
+[![License](https://img.shields.io/badge/license-MIT-green)](#)
 
-## Description
+</div>
 
-`advanced_corpus_search` is a tool designed to perform modifier searches for the latest IP addresses. It requires a Google Threat Intelligence (GTI) Enterprise License. This repository serves as a proof of concept demonstrating how to programmatically interact with the GTI corpus to extract advanced threat intelligence and modifier data.
+A high-performance search tool designed to perform modifier searches for the latest IP addresses utilizing the Google Threat Intelligence (GTI) Enterprise License. This repository demonstrates how to programmatically interact with the GTI corpus to extract advanced threat intelligence, metadata, and modifier data for threat hunting and incident response workflows.
 
-## Important
-Do not include sensitive keys or credentials in this repository. All API interactions should be done via environment variables or secure inputs.
+> **⚠️ NOTE:** This project is for **Proof of Concept (POC) purposes only**. It is not intended for production use. Do not hardcode sensitive keys or credentials in this repository.
+
+---
+
+## 🚀 Quickstart
+
+```bash
+git clone git@github.com:Muybi3n/advanced_corpus_search.git
+cd advanced_corpus_search
+```
+
+Configure your environment and run:
+
+```bash
+export GTI_API_KEY='your_api_key'
+# Run the main script or notebook
+```
+
+## 🏗️ Architecture & Integration
+
+This project is built to be easily adaptable and integrated into existing workflows:
+
+- **Data Source:** Google Threat Intelligence (GTI) Enterprise API.
+- **Use Case:** Advanced modifier searches and IP context enrichment.
+- **Integration:** Can be plugged into SIEMs or SOAR platforms.
+
+## 🛡️ Security Best Practices
+
+- **API Keys:** Never hardcode your GTI API keys into the source code.
+- **Environment Variables:** Always use environment variables or secure credential vaults to manage access.
+- **Scope:** Ensure your API token has only the necessary permissions required for the integration.
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome! Since this is a POC, feel free to fork and adapt it to your specific use cases.
